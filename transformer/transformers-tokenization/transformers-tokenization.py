@@ -16,71 +16,70 @@ class SimpleTokenizer:
         self.unk_token = "<UNK>"
         self.bos_token = "<BOS>"
         self.eos_token = "<EOS>"
-
-    def test_vocab(self):
-        self.build_vocab(["GOOD", "MORNING", "morning", "son", "sOn", "hello", "world"])
-
-        assert self.vocab_size == 9, self.vocab_size
     
     def build_vocab(self, texts: List[str]) -> None:
         """
         Build vocabulary from a list of texts.
         Add special tokens first, then unique words.
         """
-        full_text = []
-        for text in texts:
-            full_text.extend(text.lower().split(" "))
-        lower_txt = list(set(full_text))
 
-        # start by adding special tokens
-        self.id_to_word[0] = self.pad_token
-        self.id_to_word[1] = self.unk_token
-        self.id_to_word[2] = self.bos_token
-        self.id_to_word[3] = self.eos_token
-
-        # now, add all text
-        for i in range(len(lower_txt)):
-            self.id_to_word[i+4] = lower_txt[i]
-
-        # When completed, rotate
-        self.word_to_id = {value: key for key, value in self.id_to_word.items()}
-
-        self.vocab_size = len(self.id_to_word.keys())
-
-        assert self.vocab_size == 10, texts
+        # Preprocess list of texts
+        texts = [word.lower() for text in texts for word in text.split(' ')]
+        texts = sorted(list(set(texts)))
         
-    
+        # First, add special tokens to vocab
+        t = [self.pad_token,
+             self.unk_token,
+             self.bos_token,
+             self.eos_token
+            ]
+        t.extend(texts)
+
+        self.vocab_size = len(t)
+        
+        ### Word to ID dict first ###
+        for index, word in enumerate(t):
+            if word not in self.word_to_id:
+                self.word_to_id[word] = index
+                self.id_to_word[index] = word
+                
     def encode(self, text: str) -> List[int]:
         """
         Convert text to list of token IDs.
         Use UNK for unknown words.
         """
-        txt_lst = text.lower().split(" ")
+        encoded = []
 
-        tokens = []
-        for txt in txt_lst:
-            if txt in self.word_to_id.keys():
-                t = self.word_to_id[txt]
-            else:
-                t = self.word_to_id[self.unk_token]
+        # Edge case
+        if len(text) == 0:
+            return encoded
+        
+        for t in text.split(" "):
+            token = 1
+            t = t.lower()
+            if t in self.word_to_id:
+                token = self.word_to_id[t]
 
-            tokens.append(t)
+            encoded.append(token)
 
-        return tokens
+        return encoded
     
     def decode(self, ids: List[int]) -> str:
         """
         Convert list of token IDs back to text.
         """
+        decoded = []
 
-        texts = []
-        for id in ids:
-            if id in self.id_to_word:
-                texts.append(self.id_to_word[id])
-            else:
-                texts.append(self.id_to_word[1])
+        if len(ids) == 0:
+            return ""
 
-        text = " ".join(texts)
-        assert text == "hello world", texts
+        for i in ids:
+            word = self.unk_token
+            if i in self.id_to_word.keys():
+                word = self.id_to_word[i]
+                
+            decoded.append(word)
 
-        return text
+        print(decoded)
+        word = " ".join(decoded)
+        return word
